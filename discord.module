@@ -1,0 +1,98 @@
+<?php
+
+/**
+ * Implementation of hook_menu_alter().
+ */
+function discord_menu_alter(&$items) {
+  // Take over forum/%forum_forum
+  $items['forum/%forum_forum']['page callback'] = 'discord_forum_page';
+}
+
+/**
+ * Page callback for a basic forum topic page. 
+ * @param taxonomy term $forum_term
+ * @return themable array for forum topic page
+ */
+function discord_forum_page($forum_term = NULL) {
+  // TODO: deal with top level forum 
+  // TODO: sorting and paging.
+ 
+  $node_ids = discord_get_topics($forum_term);
+  $forum_data = discord_load_topic_data($node_ids);
+  return $forum_data;
+}
+
+function discord_get_topics($forum_term ,$sort = NUL, $start = 0, $end = 5) {
+  // TODO: make infinate scroll
+  $start = 0;
+  $end = 25;
+  $query = new EntityFieldQuery();
+  $query->entityCondition('entity_type', 'node');
+  $query->fieldCondition('taxonomy_forums', 'tid', $forum_term->tid);
+  $query->range($start,$end);
+  $result = $query->execute();
+  
+  $node_ids = array_keys($result['node']);
+  return $node_ids;
+}
+
+/**
+ * Data loading functions 
+ */
+
+/**
+ * for the given node ids return data that can be used for rendering a discord style topic page.
+ * @param array $node_ids an array of node ids for the items to be displayed.
+ */
+function discord_load_topic_data($node_ids) {
+  // TODO static: and or other caching.
+  $user_ids = array();  
+  $topic_ids = array();
+  $nodes = node_load_multiple($node_ids);
+  // Get the user ids that we need. 
+  foreach ($nodes as $node) {
+    $user_ids[$node->uid] = TRUE;
+    if ($node->comment_count) {
+      $user_ids[$node->last_comment_uid] = TRUE;
+    }
+    $topic_ids[$node->forum_tid] = TRUE;
+  }
+  
+  $users = user_load_multiple(array_keys($user_ids));
+  $topics = taxonomy_term_load_multiple(array_keys($topic_ids));
+  
+  // Output will be themeable array 
+  $output = array();
+  foreach ($nodes as $node) {
+    $item = array(
+      '#theme' => 'discord_post',
+      '#nid' => $node->nid,
+      '#title' => $node->title,
+      '#category' => $topics[$node->forum_tid],
+      '#participants' => array(),
+      '#posts' => $node->comment_count,
+     );
+    
+    $item['#participants'][] = 
+       array('#theme' => 'discord_post_participant',
+             '#note' => t('Post author.'),
+             '#user' => $users[$node->uid]);
+
+    //TODO: Add active users here.
+   
+    if ($node->comment_count && $node->last_comment_uid != $node->uid) {
+      $item['#participants'][] =
+        array('#theme' => 'discord_post_participant',
+              '#note' => t('Last comment by.'),
+              '#user' => $users[$node->last_comment_uid]);
+    }
+
+    //TODO: make statistics a soft dependancy
+    $stats = statistics_get($node->nid);
+    $item['#view_count'] = $stats['totalcount'];
+    $output[] = $item;
+  }
+  krumo($output);
+  
+  return $output;
+}

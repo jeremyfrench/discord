@@ -1,1 +1,8 @@
 name = discord
+description = A better forum.
+core = 7.x
+
+dependencies[] = forum
+dependencies[] = statistics
+dependencies[] = gravatar
+
