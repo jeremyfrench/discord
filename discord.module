@@ -9,6 +9,29 @@ function discord_menu_alter(&$items) {
 }
 
 /**
+ * Implementation of hook_theme().
+ */
+function discord_theme() {
+  $items = array();
+  
+  $items['discord_post'] = array(
+     'template' => 'discord-post',
+     'variables' => array(
+         'nid' => NULL,
+         'title' => NULL,
+         'category' => NULL,
+         'participants' => NULL,
+         'posts' => 0,
+         'activity' => 0,
+         'view_count' => NULL,
+      ),
+  );
+  
+  
+  return $items;
+}
+
+/**
  * Page callback for a basic forum topic page. 
  * @param taxonomy term $forum_term
  * @return themable array for forum topic page
@@ -19,16 +42,19 @@ function discord_forum_page($forum_term = NULL) {
  
   $node_ids = discord_get_topics($forum_term);
   $forum_data = discord_load_topic_data($node_ids);
+  
   return $forum_data;
 }
 
-function discord_get_topics($forum_term ,$sort = NUL, $start = 0, $end = 5) {
+function discord_get_topics($forum_term ,$sort = NULL, $start = 0, $end = 5) {
   // TODO: make infinate scroll
   $start = 0;
   $end = 25;
   $query = new EntityFieldQuery();
   $query->entityCondition('entity_type', 'node');
   $query->fieldCondition('taxonomy_forums', 'tid', $forum_term->tid);
+  // TODO: pass in order by. order by comment date?
+  $query->propertyOrderBy('changed','DESC');
   $query->range($start,$end);
   $result = $query->execute();
   
@@ -71,6 +97,7 @@ function discord_load_topic_data($node_ids) {
       '#category' => $topics[$node->forum_tid],
       '#participants' => array(),
       '#posts' => $node->comment_count,
+      '#activity' => $node->last_comment_timestamp,
      );
     
     $item['#participants'][] = 
@@ -92,7 +119,7 @@ function discord_load_topic_data($node_ids) {
     $item['#view_count'] = $stats['totalcount'];
     $output[] = $item;
   }
-  krumo($output);
+
   
   return $output;
 }
