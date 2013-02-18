@@ -30,3 +30,9 @@ Rough Roadmap
  * Infinate scroll
  * Soft dependancies
  * integrate with module for likes (voting api or flag?)
+ 
+
+Notes
+-----
+
+Nomiculture: I'll try to standardize on the idea that a *forum* contains *topics* which have *posts* rather than use other terms or mis use these.

@@ -13,9 +13,17 @@ function discord_menu_alter(&$items) {
  */
 function discord_theme() {
   $items = array();
+
+  $items['discord_forum'] = array(
+      'template' => 'discord-forum',
+      'variables' => array(
+          'title' => NULL,
+          'topics' => array(),
+          ),
+      );
   
-  $items['discord_post'] = array(
-     'template' => 'discord-post',
+  $items['discord_topic'] = array(
+     'template' => 'discord-topic',
      'variables' => array(
          'nid' => NULL,
          'title' => NULL,
@@ -41,9 +49,15 @@ function discord_forum_page($forum_term = NULL) {
   // TODO: sorting and paging.
  
   $node_ids = discord_get_topics($forum_term);
-  $forum_data = discord_load_topic_data($node_ids);
+  $forum_topics = discord_load_topic_data($node_ids);
   
-  return $forum_data;
+  $forum = array(
+      '#theme' => 'discord_forum',
+      '#title' => $forum_term->name,
+      '#topics' => $forum_topics,
+      );
+  
+  return $forum;
 }
 
 function discord_get_topics($forum_term ,$sort = NULL, $start = 0, $end = 5) {
@@ -91,7 +105,7 @@ function discord_load_topic_data($node_ids) {
   $output = array();
   foreach ($nodes as $node) {
     $item = array(
-      '#theme' => 'discord_post',
+      '#theme' => 'discord_topic',
       '#nid' => $node->nid,
       '#title' => $node->title,
       '#category' => $topics[$node->forum_tid],
